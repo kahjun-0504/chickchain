@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChickChain Verification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #fcfcfc; }
+    </style>
+</head>
+<body class="text-gray-900 font-sans antialiased">
+
+    <main class="max-w-xl mx-auto py-12 px-6">
+        
+        <div class="flex items-center justify-between mb-12 border-b border-gray-100 pb-6">
+            <h1 class="text-lg font-black tracking-tighter uppercase text-emerald-900">ChickChain</h1>
+            <span class="text-[9px] font-bold border border-gray-200 px-3 py-1 rounded text-gray-400 uppercase tracking-widest">Verified Journey</span>
+        </div>
+
+        <div id="loading-state" class="py-20 text-center text-[10px] font-bold uppercase text-gray-300 tracking-[0.3em]">Connecting to Ledger...</div>
+        <div id="error-message" class="hidden p-8 bg-red-50 text-red-700 rounded-lg text-xs font-bold text-center">---</div>
+
+        <div id="trace-content" class="hidden space-y-12">
+            
+            <section>
+                <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-3">Product Specification</p>
+                <h2 id="display-product-name" class="text-3xl font-bold text-gray-900 mb-1">---</h2>
+                <p id="display-description" class="text-sm text-gray-500 mb-8 font-medium">---</p>
+                
+                <div class="grid grid-cols-2 gap-8 bg-white p-6 rounded-2xl border border-gray-100">
+                    <div>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Category</p>
+                        <p id="display-category" class="text-xs font-bold">---</p>
+                    </div>
+                    <div>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Net Weight</p>
+                        <p id="display-weight" class="text-xs font-bold">---</p>
+                    </div>
+                    <div>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Producer</p>
+                        <p id="display-producer" class="text-xs font-bold text-gray-800">---</p>
+                    </div>
+                    <div>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Serial ID</p>
+                        <p id="display-batch-id" class="text-xs font-mono font-bold text-emerald-700">---</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="pt-6">
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-10">Supply Chain Journey</p>
+                <div id="timeline-container">
+                    </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script src="public-trace.js"></script>
+</body>
+</html>
