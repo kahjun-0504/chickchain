@@ -1,6 +1,6 @@
 'use strict';
 
-const API_URL = 'http://127.0.0.1:5000/api/chicken/trace'; 
+const API_URL = 'https://josef-undedicated-excusively.ngrok-free.dev/api/chicken/trace'; 
 
 function getAssetId() {
     const params = new URLSearchParams(window.location.search);
