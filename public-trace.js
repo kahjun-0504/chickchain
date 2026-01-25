@@ -3,12 +3,17 @@
 const API_URL = 'https://josef-undedicated-excusively.ngrok-free.dev/api/chicken/trace'; 
 const IPFS_GATEWAY = 'https://gateway.pinata.cloud/ipfs';
 
+/**
+ * Extracts ID from URL query parameters (?id=... or ?batchId=...)
+ */
 function getAssetId() {
     const params = new URLSearchParams(window.location.search);
     return params.get('id') || params.get('batchId');
 }
 
-// Helper to generate the HTML for a certificate button
+/**
+ * Helper to generate the HTML for a certificate button linked to IPFS
+ */
 function renderIPFSLink(cid, label, colorClass) {
     if (!cid || cid === "" || cid === "undefined") return '';
     return `
@@ -21,6 +26,9 @@ function renderIPFSLink(cid, label, colorClass) {
         </a>`;
 }
 
+/**
+ * Main function to fetch history from the Ledger and update the UI
+ */
 async function fetchTraceData(id) {
     const loading = document.getElementById('loading-state');
     const content = document.getElementById('trace-content');
@@ -43,18 +51,27 @@ async function fetchTraceData(id) {
             loading.classList.add('hidden');
             content.classList.remove('hidden');
 
-            const traceData = result.data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            // 1. DATA NORMALIZATION
+            // Fabric returns history as { Timestamp, Value: { ... } } or { timestamp, Record: { ... } }
+            const traceData = result.data.map(item => {
+                const record = item.Value || item.Record || item.record || item;
+                return {
+                    timestamp: item.Timestamp || item.timestamp,
+                    record: record
+                };
+            }).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
             const latest = traceData[traceData.length - 1].record;
 
-            // --- HEADER: PRODUCT SPECIFICATION ---
+            // 2. HEADER: PRODUCT SPECIFICATION
             document.getElementById('display-product-name').textContent = latest.productName || "Poultry Batch";
             document.getElementById('display-category').textContent = latest.productType || "Raw Material";
             document.getElementById('display-weight').textContent = latest.productWeight ? `${latest.productWeight} kg` : "N/A";
-            document.getElementById('display-producer').textContent = latest.companyName || latest.ownerName;
+            document.getElementById('display-producer').textContent = latest.companyName || latest.ownerName || "Unknown Producer";
             document.getElementById('display-description').textContent = latest.productDescription || "Authenticated via distributed ledger technology.";
             document.getElementById('display-batch-id').textContent = id;
 
-            // Inject Top Certificates
+            // 3. TOP CERTIFICATES (Summary Icons)
             const topCerts = document.getElementById('top-certificates');
             if (topCerts) {
                 topCerts.innerHTML = 
@@ -65,15 +82,18 @@ async function fetchTraceData(id) {
 
             renderTimeline(traceData);
         } else {
-            throw new Error("Asset ID not found in ledger.");
+            throw new Error("Asset ID not found in ledger registry.");
         }
     } catch (err) {
         loading.classList.add('hidden');
         error.classList.remove('hidden');
-        error.textContent = err.message;
+        document.getElementById('error-text').textContent = err.message;
     }
 }
 
+/**
+ * Builds the visual timeline of the asset's journey
+ */
 function renderTimeline(data) {
     const container = document.getElementById('timeline-container');
     container.innerHTML = '';
@@ -93,43 +113,47 @@ function renderTimeline(data) {
         let metaHtml = ""; 
         let certsHtml = "";
 
-        // 1. FARM HARVEST (Check for Vaccine CID)
+        // STEP 1: FARM HARVEST
         if (!farmShown && rec.harvestDate) {
             stageTitle = "Farm Harvest";
             certsHtml = renderIPFSLink(rec.vaccineCertCID, "View Vaccine Record", "bg-emerald-50 text-emerald-700 border-emerald-100 mt-3");
             metaHtml = `
                 <div class="mt-2 text-[11px] text-gray-600 font-medium">
-                    Origin: ${rec.origin} | Raised: ${rec.growingDays} Days
+                    Origin: ${rec.origin || 'Selangor Farm'} | Growing Period: ${rec.growingDays || 'N/A'} Days
                 </div>`;
             farmShown = true;
         } 
-        // 2. SLAUGHTERHOUSE (Check for Slaughter Halal CID)
-        else if (!slaughterShown && rec.slaughterDetails && rec.slaughterDate) {
-            stageTitle = "Processing & Quality Check";
+        // STEP 2: SLAUGHTERHOUSE PROCESSING
+        else if (!slaughterShown && rec.slaughterDetails) {
+            stageTitle = "Processing & Halal Quality Check";
             certsHtml = renderIPFSLink(rec.halalSlaughterCertCID, "View Halal Slaughter Cert", "bg-amber-50 text-amber-700 border-amber-100 mt-3");
             metaHtml = `
                 <div class="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                    <p class="text-[9px] font-bold text-gray-400 uppercase mb-2">Processing Metadata</p>
+                    <p class="text-[9px] font-bold text-gray-400 uppercase mb-2">Processing Details</p>
                     <p class="text-sm font-semibold text-gray-800 italic">"${rec.slaughterDetails}"</p>
-                    <p class="text-[10px] text-gray-500 mt-2">Committed on: ${rec.slaughterDate}</p>
+                    <p class="text-[10px] text-gray-500 mt-2">Processed on: ${rec.slaughterDate || 'N/A'}</p>
                 </div>`;
             slaughterShown = true;
         }
-        // 3. FINAL PRODUCT (Check for Producer Halal CID)
-        else if (!transformationShown && rec.productName) {
+        // STEP 3: FINAL PRODUCT TRANSFORMATION
+        else if (!transformationShown && rec.productName && rec.isFinalProduct) {
             stageTitle = "Final Product Transformation";
             certsHtml = renderIPFSLink(rec.halalProducerCertCID, "View Product Halal Cert", "bg-purple-50 text-purple-700 border-purple-100 mt-3");
-            metaHtml = `<p class="text-[11px] text-gray-500 mt-1 font-medium">Product successfully transformed and packaged for retail.</p>`;
+            metaHtml = `<p class="text-[11px] text-gray-500 mt-1 font-medium">Product successfully transformed and packaged for retail distribution.</p>`;
             transformationShown = true;
         }
-        // 4. LOGISTICS vs LEDGER UPDATE
+        // STEP 4: LOGISTICS / OWNERSHIP HANDSHAKE
         else {
-            if (prevRec && prevRec.ownerName === rec.ownerName) {
-                stageTitle = "Ledger Updated";
-                metaHtml = `<p class="text-[11px] text-emerald-600 mt-1 font-bold tracking-tight">Status Update Recorded</p>`;
+            const status = (rec.status || "").toUpperCase();
+            if (status === 'IN_TRANSIT') {
+                stageTitle = "Dispatch / Logistics";
+                metaHtml = `<p class="text-[11px] text-orange-600 mt-1 font-bold uppercase tracking-tight">Handover Initiated to ${rec.intendedOwnerName || 'Next Party'}</p>`;
+            } else if (prevRec && prevRec.ownerName === rec.ownerName) {
+                stageTitle = "Ledger Registry Update";
+                metaHtml = `<p class="text-[11px] text-emerald-600 mt-1 font-bold">Metadata Hash Verified</p>`;
             } else {
                 stageTitle = "Logistics Update";
-                metaHtml = `<p class="text-[11px] text-gray-400 mt-1 font-medium uppercase tracking-tighter">Received by ${rec.ownerName}</p>`;
+                metaHtml = `<p class="text-[11px] text-gray-400 mt-1 font-medium uppercase tracking-tighter">Ownership Accepted by ${rec.ownerName}</p>`;
             }
         }
 
@@ -143,12 +167,13 @@ function renderTimeline(data) {
                 <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">${stageTitle}</span>
                 <span class="text-[10px] text-gray-300 font-mono">${dateStr}</span>
             </div>
-            <h4 class="text-sm font-bold text-gray-900">${rec.ownerName}</h4>
+            <h4 class="text-sm font-bold text-gray-900">${rec.ownerName || "Network Participant"}</h4>
             ${metaHtml}
-            <div class="flex flex-wrap gap-2">${certsHtml}</div>
+            <div class="flex flex-wrap gap-2 mt-2">${certsHtml}</div>
         `;
         container.appendChild(eventEl);
     });
 }
 
+// Initialize fetch on page load
 fetchTraceData(getAssetId());
