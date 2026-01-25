@@ -86,6 +86,15 @@ function renderTimeline(data) {
 
     data.forEach((item, index) => {
         const rec = item.record;
+        
+        // Skip intermediate "received by producer" if next event is transformation
+        if (index < data.length - 1) {
+            const nextRec = data[index + 1].record;
+            if (rec.currentOwnerOrg === 'Org5MSP' && nextRec.transformedFromID && !rec.transformedFromID) {
+                return; // Skip this event, the transformation will be shown instead
+            }
+        }
+
         const eventEl = document.createElement('div');
         eventEl.className = 'relative pl-8 pb-10 border-l border-gray-300 last:border-0 ml-2';
 
