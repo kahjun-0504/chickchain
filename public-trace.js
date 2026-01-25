@@ -4,7 +4,7 @@ const API_URL = 'https://josef-undedicated-excusively.ngrok-free.dev/api/chicken
 const IPFS_GATEWAY = 'https://gateway.pinata.cloud/ipfs';
 
 /**
- * Extracts ID from URL query parameters (?id=... or ?batchId=...)
+ * Extracts ID from URL query parameters
  */
 function getAssetId() {
     const params = new URLSearchParams(window.location.search);
@@ -12,7 +12,7 @@ function getAssetId() {
 }
 
 /**
- * Helper to generate the HTML for a certificate button linked to IPFS
+ * Helper to generate the HTML for a certificate button
  */
 function renderIPFSLink(cid, label, colorClass) {
     if (!cid || cid === "" || cid === "undefined") return '';
@@ -27,7 +27,7 @@ function renderIPFSLink(cid, label, colorClass) {
 }
 
 /**
- * Main function to fetch history from the Ledger and update the UI
+ * Main function to fetch and render Traceability data
  */
 async function fetchTraceData(id) {
     const loading = document.getElementById('loading-state');
@@ -47,12 +47,16 @@ async function fetchTraceData(id) {
         });
         const result = await response.json();
 
+        // --- DEBUG LOGS START ---
+        console.log("--- ChickChain Debugger ---");
+        console.log("1. Full API Response:", result);
+        // --- DEBUG LOGS END ---
+
         if (result.success && result.data && result.data.length > 0) {
             loading.classList.add('hidden');
             content.classList.remove('hidden');
 
-            // 1. DATA NORMALIZATION
-            // Fabric returns history as { Timestamp, Value: { ... } } or { timestamp, Record: { ... } }
+            // Normalize Fabric response structure
             const traceData = result.data.map(item => {
                 const record = item.Value || item.Record || item.record || item;
                 return {
@@ -63,15 +67,32 @@ async function fetchTraceData(id) {
 
             const latest = traceData[traceData.length - 1].record;
 
-            // 2. HEADER: PRODUCT SPECIFICATION
+            // --- MORE DEBUG LOGS ---
+            console.log("2. Normalized Trace History:", traceData);
+            console.log("3. Latest Record Content:", latest);
+            console.log("4. Detected Category (productType):", latest.productType);
+            console.log("5. Detected Category (category fallback):", latest.category);
+            // --- DEBUG LOGS END ---
+
+            // --- UPDATE HEADER UI ---
             document.getElementById('display-product-name').textContent = latest.productName || "Poultry Batch";
-            document.getElementById('display-category').textContent = latest.productType || "Raw Material";
-            document.getElementById('display-weight').textContent = latest.productWeight ? `${latest.productWeight} kg` : "N/A";
-            document.getElementById('display-producer').textContent = latest.companyName || latest.ownerName || "Unknown Producer";
-            document.getElementById('display-description').textContent = latest.productDescription || "Authenticated via distributed ledger technology.";
+            
+            // Failsafe logic for Category: checks both naming conventions
+            document.getElementById('display-category').textContent = 
+                latest.productType || latest.category || "General / Raw Material";
+            
+            document.getElementById('display-weight').textContent = 
+                latest.productWeight ? `${latest.productWeight} kg` : "N/A";
+            
+            document.getElementById('display-producer').textContent = 
+                latest.companyName || latest.ownerName || "Certified Producer";
+            
+            document.getElementById('display-description').textContent = 
+                latest.productDescription || "Authenticated via distributed ledger technology.";
+            
             document.getElementById('display-batch-id').textContent = id;
 
-            // 3. TOP CERTIFICATES (Summary Icons)
+            // --- RENDER CERTIFICATES ---
             const topCerts = document.getElementById('top-certificates');
             if (topCerts) {
                 topCerts.innerHTML = 
@@ -82,17 +103,21 @@ async function fetchTraceData(id) {
 
             renderTimeline(traceData);
         } else {
-            throw new Error("Asset ID not found in ledger registry.");
+            throw new Error("Asset ID not found in the blockchain ledger.");
         }
     } catch (err) {
+        console.error("Fetch Error:", err);
         loading.classList.add('hidden');
         error.classList.remove('hidden');
-        document.getElementById('error-text').textContent = err.message;
+        // Targets the specific error text span if you have one, or the whole div
+        const errorText = document.getElementById('error-text');
+        if (errorText) errorText.textContent = err.message;
+        else error.textContent = err.message;
     }
 }
 
 /**
- * Builds the visual timeline of the asset's journey
+ * Builds the visual timeline list
  */
 function renderTimeline(data) {
     const container = document.getElementById('timeline-container');
@@ -113,47 +138,39 @@ function renderTimeline(data) {
         let metaHtml = ""; 
         let certsHtml = "";
 
-        // STEP 1: FARM HARVEST
+        // 1. FARM HARVEST
         if (!farmShown && rec.harvestDate) {
             stageTitle = "Farm Harvest";
             certsHtml = renderIPFSLink(rec.vaccineCertCID, "View Vaccine Record", "bg-emerald-50 text-emerald-700 border-emerald-100 mt-3");
-            metaHtml = `
-                <div class="mt-2 text-[11px] text-gray-600 font-medium">
-                    Origin: ${rec.origin || 'Selangor Farm'} | Growing Period: ${rec.growingDays || 'N/A'} Days
-                </div>`;
+            metaHtml = `<div class="mt-2 text-[11px] text-gray-600 font-medium">Origin: ${rec.origin || 'Selangor Farm'}</div>`;
             farmShown = true;
         } 
-        // STEP 2: SLAUGHTERHOUSE PROCESSING
+        // 2. SLAUGHTERHOUSE
         else if (!slaughterShown && rec.slaughterDetails) {
-            stageTitle = "Processing & Halal Quality Check";
+            stageTitle = "Processing & Quality Check";
             certsHtml = renderIPFSLink(rec.halalSlaughterCertCID, "View Halal Slaughter Cert", "bg-amber-50 text-amber-700 border-amber-100 mt-3");
-            metaHtml = `
-                <div class="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                    <p class="text-[9px] font-bold text-gray-400 uppercase mb-2">Processing Details</p>
-                    <p class="text-sm font-semibold text-gray-800 italic">"${rec.slaughterDetails}"</p>
-                    <p class="text-[10px] text-gray-500 mt-2">Processed on: ${rec.slaughterDate || 'N/A'}</p>
-                </div>`;
+            metaHtml = `<p class="text-[10px] text-gray-500 mt-2 font-medium italic">"${rec.slaughterDetails}"</p>`;
             slaughterShown = true;
         }
-        // STEP 3: FINAL PRODUCT TRANSFORMATION
-        else if (!transformationShown && rec.productName && rec.isFinalProduct) {
-            stageTitle = "Final Product Transformation";
-            certsHtml = renderIPFSLink(rec.halalProducerCertCID, "View Product Halal Cert", "bg-purple-50 text-purple-700 border-purple-100 mt-3");
-            metaHtml = `<p class="text-[11px] text-gray-500 mt-1 font-medium">Product successfully transformed and packaged for retail distribution.</p>`;
+        // 3. FINAL PRODUCT
+        else if (!transformationShown && rec.productName) {
+            stageTitle = "SKU Transformation";
+            certsHtml = renderIPFSLink(rec.halalProducerCertCID, "View Halal Process Cert", "bg-purple-50 text-purple-700 border-purple-100 mt-3");
+            metaHtml = `<p class="text-[11px] text-gray-500 mt-1 font-medium">Final product transformation confirmed.</p>`;
             transformationShown = true;
         }
-        // STEP 4: LOGISTICS / OWNERSHIP HANDSHAKE
+        // 4. LOGISTICS HANDOVER
         else {
             const status = (rec.status || "").toUpperCase();
             if (status === 'IN_TRANSIT') {
-                stageTitle = "Dispatch / Logistics";
-                metaHtml = `<p class="text-[11px] text-orange-600 mt-1 font-bold uppercase tracking-tight">Handover Initiated to ${rec.intendedOwnerName || 'Next Party'}</p>`;
+                stageTitle = "In Transit";
+                metaHtml = `<p class="text-[11px] text-orange-600 mt-1 font-bold">Shipped to ${rec.intendedOwnerName || 'Partner'}</p>`;
             } else if (prevRec && prevRec.ownerName === rec.ownerName) {
-                stageTitle = "Ledger Registry Update";
-                metaHtml = `<p class="text-[11px] text-emerald-600 mt-1 font-bold">Metadata Hash Verified</p>`;
+                stageTitle = "Ledger Updated";
+                metaHtml = `<p class="text-[11px] text-emerald-600 mt-1 font-bold">Metadata Sync Verified</p>`;
             } else {
-                stageTitle = "Logistics Update";
-                metaHtml = `<p class="text-[11px] text-gray-400 mt-1 font-medium uppercase tracking-tighter">Ownership Accepted by ${rec.ownerName}</p>`;
+                stageTitle = "Ownership Transfer";
+                metaHtml = `<p class="text-[11px] text-gray-400 mt-1 font-medium uppercase tracking-tighter">Received by ${rec.ownerName}</p>`;
             }
         }
 
@@ -167,13 +184,13 @@ function renderTimeline(data) {
                 <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">${stageTitle}</span>
                 <span class="text-[10px] text-gray-300 font-mono">${dateStr}</span>
             </div>
-            <h4 class="text-sm font-bold text-gray-900">${rec.ownerName || "Network Participant"}</h4>
+            <h4 class="text-sm font-bold text-gray-900">${rec.ownerName || "Network Node"}</h4>
             ${metaHtml}
-            <div class="flex flex-wrap gap-2 mt-2">${certsHtml}</div>
+            <div class="flex flex-wrap gap-2">${certsHtml}</div>
         `;
         container.appendChild(eventEl);
     });
 }
 
-// Initialize fetch on page load
-fetchTraceData(getAssetId());
+// Start
+fetchTraceData(getAssetId());;
