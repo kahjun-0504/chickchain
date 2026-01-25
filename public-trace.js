@@ -101,10 +101,15 @@ function renderTimeline(data) {
             certsHtml = renderIPFSLink(rec.halalSlaughterCertCID, "View Halal Slaughter Cert", "bg-amber-50 text-amber-700 border-amber-200 mt-3");
             metaHtml = `<p class="text-sm font-semibold text-gray-800 italic mt-2">"${rec.slaughterDetails}"</p>`;
             slaughterShown = true;
-        } else if (!transformationShown && rec.productName && rec.isFinalProduct) {
-            stageTitle = "Final Product Transformation";
+        } else if (!transformationShown && rec.transformedFromID) {
+            stageTitle = "Product Transformation";
             certsHtml = renderIPFSLink(rec.halalProducerCertCID, "View Product Halal Cert", "bg-purple-50 text-purple-700 border-purple-200 mt-3");
-            metaHtml = `<p class="text-xs text-gray-500 mt-1 font-medium">Retail packaging confirmed.</p>`;
+            metaHtml = `<p class="text-xs text-gray-600 mt-1 font-medium">${rec.productName} - ${rec.productWeight} kg</p>`;
+            transformationShown = true;
+        } else if (!transformationShown && rec.isFinalProduct && rec.packagingDetails) {
+            stageTitle = "Packaging & Dispatch";
+            certsHtml = renderIPFSLink(rec.halalProducerCertCID, "View Product Halal Cert", "bg-purple-50 text-purple-700 border-purple-200 mt-3");
+            metaHtml = `<p class="text-xs text-gray-500 mt-1 font-medium">Ready for retail distribution.</p>`;
             transformationShown = true;
         } else {
             const status = (rec.status || "").toUpperCase();
