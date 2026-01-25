@@ -47,11 +47,6 @@ async function fetchTraceData(id) {
         });
         const result = await response.json();
 
-        // --- DEBUG LOGS START ---
-        console.log("--- ChickChain Debugger ---");
-        console.log("1. Full API Response:", result);
-        // --- DEBUG LOGS END ---
-
         if (result.success && result.data && result.data.length > 0) {
             loading.classList.add('hidden');
             content.classList.remove('hidden');
@@ -67,19 +62,12 @@ async function fetchTraceData(id) {
 
             const latest = traceData[traceData.length - 1].record;
 
-            // --- MORE DEBUG LOGS ---
-            console.log("2. Normalized Trace History:", traceData);
-            console.log("3. Latest Record Content:", latest);
-            console.log("4. Detected Category (productType):", latest.productType);
-            console.log("5. Detected Category (category fallback):", latest.category);
-            // --- DEBUG LOGS END ---
-
             // --- UPDATE HEADER UI ---
             document.getElementById('display-product-name').textContent = latest.productName || "Poultry Batch";
             
-            // Failsafe logic for Category: checks both naming conventions
-            document.getElementById('display-category').textContent = 
-                latest.productType || latest.category || "General / Raw Material";
+            // Note: 'display-category' element is no longer updated as it is being removed
+            const categoryEl = document.getElementById('display-category');
+            if (categoryEl) categoryEl.classList.add('hidden'); 
             
             document.getElementById('display-weight').textContent = 
                 latest.productWeight ? `${latest.productWeight} kg` : "N/A";
@@ -109,7 +97,6 @@ async function fetchTraceData(id) {
         console.error("Fetch Error:", err);
         loading.classList.add('hidden');
         error.classList.remove('hidden');
-        // Targets the specific error text span if you have one, or the whole div
         const errorText = document.getElementById('error-text');
         if (errorText) errorText.textContent = err.message;
         else error.textContent = err.message;
@@ -193,4 +180,4 @@ function renderTimeline(data) {
 }
 
 // Start
-fetchTraceData(getAssetId());;
+fetchTraceData(getAssetId());
