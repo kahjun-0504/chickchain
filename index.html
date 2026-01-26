@@ -5,80 +5,125 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChickChain Verification | Blockchain Transparency</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            background: #fafafa;
-            min-height: 100vh;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fdfdfd;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
-
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
         #trace-content { 
-            animation: fadeIn 0.5s ease-in-out;
+            animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
         
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        .timeline-line::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e5e7eb;
+            z-index: 0;
+        }
     </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "qrcode.react": "https://esm.sh/qrcode.react@^4.2.0"
+  }
+}
+</script>
 </head>
-<body class="text-gray-900 font-sans antialiased">
-    <main class="max-w-xl mx-auto py-12 px-6">
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-12 border-b border-gray-200 pb-6">
-            <h1 class="text-2xl font-bold tracking-tight text-gray-900">ChickChain</h1>
-            <span class="text-xs font-semibold border border-gray-300 bg-white px-3 py-1.5 rounded-lg text-gray-700 uppercase tracking-widest">Verified Journey</span>
+<body class="text-slate-900">
+    <main class="max-w-xl mx-auto py-16 px-6">
+        <!-- Brand Header -->
+        <div class="flex flex-col items-center mb-16 text-center">
+            <div class="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-emerald-200">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            </div>
+            <h1 class="text-xl font-extrabold tracking-tighter uppercase text-slate-900">ChickChain</h1>
+            <p class="text-[10px] font-black text-emerald-600 uppercase tracking-[0.3em] mt-1">Immutable Verification Protocol</p>
         </div>
 
-        <!-- Loading State -->
-        <div id="loading-state" class="py-20 text-center text-xs font-semibold text-gray-400 uppercase tracking-[0.3em]">Connecting...</div>
+        <!-- States -->
+        <div id="loading-state" class="py-20 text-center">
+            <div class="inline-block w-6 h-6 border-2 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-4"></div>
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Querying Ledger...</p>
+        </div>
         
-        <!-- Error State -->
-        <div id="error-message" class="hidden p-6 bg-gray-50 text-gray-700 rounded-lg text-xs font-semibold text-center border border-gray-200">
-            <p id="error-text">---</p>
+        <div id="error-message" class="hidden p-8 bg-red-50 text-red-700 rounded-3xl text-xs font-bold text-center border border-red-100 animate-pulse">
+            <svg class="w-6 h-6 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <p id="error-text">Network Error: Identity not found on-chain.</p>
         </div>
 
-        <!-- Content -->
+        <!-- Public Content -->
         <div id="trace-content" class="hidden space-y-12">
-            <!-- Product Section -->
+            <!-- Product Identity Card -->
+            <section class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Authentic Product</p>
+                        <h2 id="display-product-name" class="text-3xl font-extrabold text-slate-900 tracking-tight">---</h2>
+                    </div>
+                    <div id="status-badge" class="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">
+                        Verified
+                    </div>
+                </div>
+
+                <p id="display-description" class="text-sm text-slate-500 mb-8 font-medium leading-relaxed">---</p>
+                
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Net Weight</p>
+                        <p id="display-weight" class="text-sm font-extrabold text-slate-900">---</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Origin Entity</p>
+                        <p id="display-producer" class="text-sm font-extrabold text-slate-900 truncate">---</p>
+                    </div>
+                </div>
+
+                <div class="pt-6 border-t border-slate-50">
+                    <p class="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-2">Immutable Blockchain Hash / ID</p>
+                    <p id="display-batch-id" class="text-[10px] mono font-bold text-slate-400 break-all bg-slate-50 p-3 rounded-xl border border-slate-100 select-all">---</p>
+                </div>
+            </section>
+
+            <!-- Verification Tools -->
+            <div id="top-certificates" class="flex flex-wrap gap-3 justify-center"></div>
+
+            <!-- The Journey -->
             <section>
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Product Specification</p>
-                <h2 id="display-product-name" class="text-3xl font-bold text-gray-900 mb-2">---</h2>
-                <p id="display-description" class="text-sm text-gray-600 mb-6 font-medium leading-relaxed">---</p>
+                <div class="flex items-center gap-4 mb-10">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] whitespace-nowrap">Provenance Record</span>
+                    <div class="h-px w-full bg-slate-100"></div>
+                </div>
                 
-                <!-- Certificates -->
-                <div id="top-certificates" class="flex flex-wrap gap-2 mb-8"></div>
-                
-                <!-- Specs Grid -->
-                <div class="grid grid-cols-2 gap-y-6 gap-x-8 bg-white p-6 rounded-lg border border-gray-200">
-                    <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Net Weight</p>
-                        <p id="display-weight" class="text-sm font-bold text-gray-900">---</p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Producer</p>
-                        <p id="display-producer" class="text-sm font-bold text-gray-900">---</p>
-                    </div>
-                    <div class="col-span-2 border-t border-gray-100 pt-4">
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Blockchain Serial ID</p>
-                        <p id="display-batch-id" class="text-xs font-mono font-bold text-gray-700 break-all">---</p>
-                    </div>
+                <div id="timeline-container" class="relative timeline-line ml-2">
+                    <!-- Events Injected Here -->
                 </div>
             </section>
 
-            <!-- Timeline Section -->
-            <section class="pt-6">
-                <div class="flex items-center gap-4 mb-8">
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest whitespace-nowrap">Supply Chain Journey</p>
-                    <div class="h-px w-full bg-gray-200"></div>
+            <!-- Footer Compliance -->
+            <footer class="pt-8 text-center border-t border-slate-50">
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full mb-4">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Real-time Fabric 2.5 Audit</p>
                 </div>
-                <div id="timeline-container" class="relative"></div>
-            </section>
-
-            <!-- Footer -->
-            <footer class="pt-12 text-center">
-                <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Recorded via Hyperledger Fabric</p>
+                <p class="text-[10px] text-slate-300 font-medium">This record is cryptographically signed by authorized network participants and cannot be altered.</p>
             </footer>
         </div>
     </main>
