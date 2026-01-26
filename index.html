@@ -51,19 +51,19 @@
             <span class="text-[10px] font-black border border-gray-200 bg-white px-3 py-1.5 rounded-lg text-emerald-600 uppercase tracking-widest shadow-sm">Verified Journey</span>
         </div>
 
-        <!-- Loading State -->
+        <!-- States -->
         <div id="loading-state" class="py-24 text-center">
             <div class="inline-block w-6 h-6 border-2 border-gray-100 border-t-emerald-600 rounded-full animate-spin mb-4"></div>
-            <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Querying Blockchain...</p>
+            <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Querying Blockchain Node...</p>
         </div>
         
-        <!-- Error State -->
         <div id="error-message" class="hidden p-8 bg-white border border-red-100 rounded-3xl text-center shadow-xl shadow-red-50">
             <div class="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             </div>
             <h3 class="text-sm font-black text-gray-900 uppercase mb-2">Audit Failed</h3>
             <p id="error-text" class="text-xs font-bold text-gray-400 uppercase tracking-widest">---</p>
+            <button onclick="location.reload()" class="mt-6 px-6 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">Retry Verification</button>
         </div>
 
         <!-- Content -->
@@ -105,9 +105,9 @@
 
             <!-- Footer -->
             <footer class="pt-12 text-center border-t border-gray-50">
-                <div class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full mb-4">
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full mb-4 text-emerald-700">
                     <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                    <p class="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Recorded via Hyperledger Fabric</p>
+                    <p class="text-[9px] font-black uppercase tracking-widest">Live Hyperledger Fabric Audit</p>
                 </div>
                 <p class="text-[10px] text-gray-300 font-bold uppercase tracking-widest leading-loose">
                     Transparency Powered by ChickChain Protocol
