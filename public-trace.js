@@ -2,14 +2,16 @@
 
 /**
  * ChickChain Standalone Public Trace Script
- * Corrected to prioritize 'enterpriseName' for professional consumer display.
+ * Optimized for high-resolution identity mapping and supply chain storytelling.
  */
 
-// If using proxy on Vercel, relative path is preferred. 
-// If your API is on a fixed external URL, use it here.
-const API_URL = '/api/chicken/trace'; 
+// Use the absolute URL for the backend as provided in the ngrok environment.
+const API_URL = 'https://josef-undedicated-excusively.ngrok-free.dev/api/chicken/trace'; 
 const IPFS_GATEWAY = 'https://gateway.pinata.cloud/ipfs';
 
+/**
+ * Extract Asset ID from URL parameters (?id=... or ?batchId=...)
+ */
 function getAssetId() {
     const params = new URLSearchParams(window.location.search);
     return params.get('id') || params.get('batchId') || params.get('productId');
@@ -21,14 +23,17 @@ function getAssetId() {
  */
 function resolveName(rec) {
     if (!rec) return "Authorized Partner";
-    // 1. Enterprise Name: The professional display name provided by the participants
+    // 1. Enterprise Name: The professional display name stamped on the ledger
     if (rec.enterpriseName) return rec.enterpriseName;
-    // 2. Company Name: Fallback for transformed products
+    // 2. Company Name: Fallback for transformed products or legacy records
     if (rec.companyName) return rec.companyName;
     // 3. Owner Name: The network username/technical ID
     return rec.ownerName || "Network Participant";
 }
 
+/**
+ * Helper to render IPFS documents as sleek action buttons
+ */
 function renderIPFSLink(cid, label, colorClass) {
     if (!cid || cid === "" || cid === "undefined") return '';
     return `
@@ -41,6 +46,9 @@ function renderIPFSLink(cid, label, colorClass) {
         </a>`;
 }
 
+/**
+ * Fetch Data and Hydrate the UI
+ */
 async function fetchTraceData(id) {
     const loading = document.getElementById('loading-state');
     const content = document.getElementById('trace-content');
@@ -50,7 +58,7 @@ async function fetchTraceData(id) {
         if (loading) loading.classList.add('hidden');
         if (error) {
             error.classList.remove('hidden');
-            document.getElementById('error-text').textContent = "Input Required: No Asset ID detected.";
+            document.getElementById('error-text').textContent = "Input Required: No Asset ID detected in the URL.";
         }
         return;
     }
@@ -58,10 +66,21 @@ async function fetchTraceData(id) {
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify({ batchId: id })
         });
         
+        // Handle non-JSON or error responses gracefully to avoid "unexpected token" errors
+        const contentType = response.headers.get("content-type");
+        if (!response.ok || !contentType || !contentType.includes("application/json")) {
+            const errorBody = await response.text();
+            console.error("Non-JSON response received:", errorBody);
+            throw new Error(`Cloud connection error: ${response.status}. Please ensure the registry node is online.`);
+        }
+
         const result = await response.json();
 
         if (result.success && result.data && result.data.length > 0) {
@@ -79,10 +98,11 @@ async function fetchTraceData(id) {
 
             const latest = traceData[traceData.length - 1].record;
 
-            document.getElementById('display-product-name').textContent = latest.productName || "Authenticated Poultry Batch";
+            // Populate UI with prioritized Enterprise Name
+            document.getElementById('display-product-name').textContent = latest.productName || "Verified Poultry";
             document.getElementById('display-weight').textContent = latest.productWeight ? `${latest.productWeight} kg` : "N/A";
             document.getElementById('display-producer').textContent = resolveName(latest);
-            document.getElementById('display-description').textContent = latest.productDescription || "Authenticated and tracked via Hyperledger Fabric blockchain.";
+            document.getElementById('display-description').textContent = latest.productDescription || "This product has been cryptographically verified via ChickChain.";
             document.getElementById('display-batch-id').textContent = id;
 
             const topCerts = document.getElementById('top-certificates');
@@ -90,12 +110,12 @@ async function fetchTraceData(id) {
                 topCerts.innerHTML = 
                     renderIPFSLink(latest.vaccineCertCID, "Health Cert", "bg-emerald-50 text-emerald-700 border-emerald-100") +
                     renderIPFSLink(latest.halalSlaughterCertCID, "Slaughter VC", "bg-amber-50 text-amber-700 border-amber-100") +
-                    renderIPFSLink(latest.halalProducerCertCID, "SKU VC", "bg-purple-50 text-purple-700 border-purple-100");
+                    renderIPFSLink(latest.halalProducerCertCID, "Process VC", "bg-purple-50 text-purple-700 border-purple-100");
             }
 
             renderTimeline(traceData);
         } else {
-            throw new Error("Asset ID not found in the immutable registry.");
+            throw new Error("Asset ID not found in the blockchain registry.");
         }
     } catch (err) {
         if (loading) loading.classList.add('hidden');
@@ -106,19 +126,22 @@ async function fetchTraceData(id) {
     }
 }
 
+/**
+ * Rendering Logic for the Provenance Timeline
+ */
 function renderTimeline(data) {
     const container = document.getElementById('timeline-container');
     if (!container) return;
     container.innerHTML = '';
+    
     let farmShown = false, slaughterShown = false, transformationShown = false;
 
     data.forEach((item, index) => {
         const rec = item.record;
         
-        // Logic to improve timeline readability
+        // Skip intermediate "received" events if a transformation immediately follows for cleaner UX
         if (index < data.length - 1) {
             const nextRec = data[index + 1].record;
-            // Skip redundant "received" events if a transformation immediately follows
             if (rec.currentOwnerOrg === 'Org5MSP' && nextRec.transformedFromID && !rec.transformedFromID) {
                 return; 
             }
@@ -127,33 +150,33 @@ function renderTimeline(data) {
         const eventEl = document.createElement('div');
         eventEl.className = 'relative pl-10 pb-12 border-l-2 border-gray-100 last:border-0 ml-2 z-10 group';
 
-        let stageTitle = "State Update", metaHtml = "", certsHtml = "";
-        let iconColor = "bg-gray-300";
+        let stageTitle = "Ledger Update", metaHtml = "", certsHtml = "";
+        let iconColor = "bg-gray-200";
 
         if (!farmShown && rec.harvestDate) {
-            stageTitle = "Farm Harvest";
+            stageTitle = "Certified Harvest";
             iconColor = "bg-emerald-500 shadow-lg shadow-emerald-50";
-            certsHtml = renderIPFSLink(rec.vaccineCertCID, "View Health Record", "bg-emerald-50 text-emerald-700 border-emerald-100 mt-4");
+            certsHtml = renderIPFSLink(rec.vaccineCertCID, "Health Record", "bg-emerald-50 text-emerald-700 border-emerald-100 mt-4");
             metaHtml = `<div class="mt-2 text-[10px] text-gray-400 font-black uppercase tracking-widest">Origin: ${rec.origin || 'Source Farm'}</div>`;
             farmShown = true;
         } else if (!slaughterShown && rec.slaughterDetails) {
-            stageTitle = "Processing & Quality";
+            stageTitle = "Processing & Halal";
             iconColor = "bg-amber-500 shadow-lg shadow-amber-50";
-            certsHtml = renderIPFSLink(rec.halalSlaughterCertCID, "View Halal Cert", "bg-amber-50 text-amber-700 border-amber-100 mt-4");
+            certsHtml = renderIPFSLink(rec.halalSlaughterCertCID, "Halal Slaughter Cert", "bg-amber-50 text-amber-700 border-amber-100 mt-4");
             metaHtml = `<p class="text-xs font-semibold text-gray-600 italic mt-3">"${rec.slaughterDetails}"</p>`;
             slaughterShown = true;
         } else if (!transformationShown && rec.transformedFromID) {
             stageTitle = "SKU Transformation";
             iconColor = "bg-purple-600 shadow-lg shadow-purple-50";
-            certsHtml = renderIPFSLink(rec.halalProducerCertCID, "View Halal Cert", "bg-purple-50 text-purple-700 border-purple-100 mt-4");
-            metaHtml = `<p class="text-[10px] text-gray-500 mt-2 font-bold uppercase tracking-tight">${rec.productName} ready for market</p>`;
+            certsHtml = renderIPFSLink(rec.halalProducerCertCID, "Halal Process Cert", "bg-purple-50 text-purple-700 border-purple-100 mt-4");
+            metaHtml = `<p class="text-[10px] text-gray-500 mt-2 font-bold uppercase tracking-tight">${rec.productName} ready for retail</p>`;
             transformationShown = true;
         } else {
             const status = (rec.status || "").toUpperCase();
             if (status === 'IN_TRANSIT') {
-                stageTitle = "Dispatch";
+                stageTitle = "Dispatched";
                 iconColor = "bg-blue-500";
-                metaHtml = `<p class="text-[10px] text-gray-400 mt-2 font-black uppercase tracking-tighter">Shipped to ${resolveName({ enterpriseName: rec.intendedOwnerName, ownerName: rec.intendedOwnerName })}</p>`;
+                metaHtml = `<p class="text-[10px] text-gray-400 mt-2 font-black uppercase tracking-tighter">Shipped to ${rec.intendedOwnerName || 'Partner Node'}</p>`;
             } else {
                 stageTitle = "Node Acceptance";
                 iconColor = "bg-emerald-400";
@@ -178,4 +201,6 @@ function renderTimeline(data) {
     });
 }
 
-fetchTraceData(getAssetId());
+// Initial trigger
+const assetId = getAssetId();
+fetchTraceData(assetId);
